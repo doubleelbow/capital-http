@@ -2,8 +2,10 @@
   (:require [com.doubleelbow.capital.alpha :as capital]
             [com.doubleelbow.capital.interceptor.alpha :as interceptor]
             [com.doubleelbow.capital.interceptor.impl.async-decide :as intc.async-decide]
+            [com.doubleelbow.capital.interceptor.impl.retry :as intc.retry]
             [com.doubleelbow.capital.interceptor.impl.circuit-breaker :as intc.circuit-breaker]
             [com.doubleelbow.capital.interceptor.impl.time :as intc.time]
+            [com.doubleelbow.capital.interceptor.impl.response-error :as intc.response-error]
             [pathetic.core :as pathetic]
             [io.pedestal.log :as log]
             [clj-http.client :as http-client]
@@ -34,18 +36,9 @@
                          (log/error :msg "something went wrong" :err err)
                          (assoc context ::capital/response "error thrown ..."))})
 
-(def ^:private error-response-intc
-  {::interceptor/name ::error-response
-   ::interceptor/error (fn [context error]
-                         (let [ex (::capital/exception (ex-data error))
-                               transient? (instance? java.io.IOException ex)]
-                           (log/info :msg "error response" :type (type ex) :isTransient transient?)
-                           (assoc context ::capital/error (ex-info (.getMessage error) (merge (ex-data error) {::capital/exception-type (if transient? ::intc.circuit-breaker/transient ::capital/unknown)}))))
-                         )})
-
 (def ^:private sync-request-intc
   {::interceptor/name ::sync-request
-   ::interceptor/dependencies ::error-response
+   ::interceptor/dependencies ::intc.response-error/response-error
    ::interceptor/up (fn [context]
                       (let [request (merge (::capital/request context) {:async? false})
                             response (http-client/request request)]
@@ -54,7 +47,7 @@
 
 (def ^:private async-request-intc
   {::interceptor/name ::async-request
-   ::interceptor/dependencies ::error-response
+   ::interceptor/dependencies ::intc.response-error/response-error
    ::interceptor/up (fn [context]
                       (let [c (async/chan 1)]
                         (http-client/request (merge (::capital/request context) {:async? true})
@@ -69,8 +62,15 @@
   (let [interceptors [(full-url-intc (::base-url config))
                       catch-error-intc
                       (intc.time/time-intc)
+                      (intc.retry/interceptor (::intc.retry/config config))
                       (intc.circuit-breaker/circuit-breaker-intc (::intc.circuit-breaker/config config))
-                      error-response-intc
+                      (intc.response-error/interceptor (fn [context error]
+                                                         (let [ex (::capital/exception (ex-data error))
+                                                               transient? (instance? java.io.IOException ex)]
+                                                           (log/info :msg "check if error response is transient" :type (type ex) :transient? transient?)
+                                                           (if transient?
+                                                             (intc.response-error/assoc-data error ::capital/exception-type ::intc.response-error/transient)
+                                                             error))))
                       (intc.async-decide/async-decide-intc {::intc.async-decide/sync-intcs sync-request-intc
                                                             ::intc.async-decide/async-intcs async-request-intc})]]
     (capital/initial-context :capital-http interceptors)))
