@@ -66,7 +66,12 @@
                       (intc.circuit-breaker/circuit-breaker-intc (::intc.circuit-breaker/config config))
                       (intc.response-error/interceptor (fn [context error]
                                                          (let [ex (::capital/exception (ex-data error))
-                                                               transient? (instance? java.io.IOException ex)]
+                                                               is-transient-status-ex (fn [e]
+                                                                                        (and (= ::http-client/unexceptional-status (:type e))
+                                                                                             (not= -1 (.indexOf (::transient-statuses config []) (:status e)))))
+                                                               transient? (or
+                                                                           (instance? java.io.IOException ex)
+                                                                           (and (instance? clojure.lang.ExceptionInfo ex) (is-transient-status-ex (ex-data ex))))]
                                                            (log/info :msg "check if error response is transient" :type (type ex) :transient? transient?)
                                                            (if transient?
                                                              (intc.response-error/assoc-data error ::capital/exception-type ::intc.response-error/transient)
