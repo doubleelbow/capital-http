@@ -8,6 +8,7 @@ target
 .nrepl-port
 .lein-repl-history
 .lein-failures
+pom.xml
 
 # deps
 .cpcache
