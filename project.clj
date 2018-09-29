@@ -1,5 +1,5 @@
 (defproject com.doubleelbow.capital/capital-http "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
+  :description "capital library for handling HTTP requests"
   :url "https://github.com/doubleelbow/capital-http"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
