@@ -1,4 +1,4 @@
-# capital http [![Clojars Project](https://img.shields.io/clojars/v/com.doubleelbow.capital/capital-http.svg)](https://clojars.org/com.doubleelbow.capital/capital-http)
+# capital http [![CircleCI](https://circleci.com/gh/doubleelbow/capital-http.svg?style=svg)](https://circleci.com/gh/doubleelbow/capital-http) [![Clojars Project](https://img.shields.io/clojars/v/com.doubleelbow.capital/capital-http.svg)](https://clojars.org/com.doubleelbow.capital/capital-http)
 
 Capital-http is a clojure library built on top of [capital](https://github.com/doubleelbow/capital) for handling HTTP requests.
 
@@ -52,5 +52,4 @@ New features will be considered, but with [unsure future](#future) of this proje
 
 Copyright © 2018 doubleelbow
 
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+Distributed under the Eclipse Public License either version 1.0 or (at your option) any later version.
